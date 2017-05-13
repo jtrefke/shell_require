@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+__script_dir="$(dirname "$(readlink -e "${BASH_SOURCE[0]}")")"
+__parent_dir="$(cd "${__script_dir}/.." && pwd)"
+# shellcheck source=../shell_module.sh
+source "${__parent_dir}/shell_module.sh"
+
+ShellModule_require "$@"
