@@ -1,8 +1,27 @@
 #!/usr/bin/env bash
 
-__script_dir="$(dirname "$(readlink -e "${BASH_SOURCE[0]}")")"
-__parent_dir="$(cd "${__script_dir}/.." && pwd)"
+Require__realDir() {
+  local original_path="${1}"
+  local file path
+  [ ! -e "${original_path}" ] && return 1
+  (
+    unset CDPATH
+    cd -- "$(dirname -- "${original_path}")" >/dev/null 2>&1 || return $?
+    file="$(basename -- "${original_path}")"; original_path="${PWD}/${file}"
+    while [ -h "${file}" ] && [ "${original_path}" != "${path}" ]; do
+      path="$(readlink -- "${file}")"; file="$(basename -- "${path}")"
+      cd -- "$(dirname -- "${path}")" >/dev/null 2>&1  || return $?
+      path="${PWD}/${file}"
+    done
+    pwd -P
+  )
+}
+
+if [ -z "${ShellModule__INSTALL_DIR:-}" ]; then
+  readonly ShellModule__INSTALL_DIR="$(unset CDPATH; cd -- "$(Require__realDir "${BASH_SOURCE[0]}")/.." && echo "${PWD}")"
+  export ShellModule__INSTALL_DIR
+fi
 # shellcheck source=../shell_module.sh
-source "${__parent_dir}/shell_module.sh"
+source "${ShellModule__INSTALL_DIR}/shell_module.sh"
 
 ShellModule_require "$@"

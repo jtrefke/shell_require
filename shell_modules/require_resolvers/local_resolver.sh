@@ -7,7 +7,7 @@ LocalResolver__sanitizedModulePath() {
 
 LocalResolver__getModuleFile() {
   local possible_paths=("$1")
-  local sanitized_path="$(LocalResolver__sanitizedModulePath "$1")"
+  local -r sanitized_path="$(LocalResolver__sanitizedModulePath "$1")"
   if [ "${sanitized_path}" != "$1" ]; then
     possible_paths+=("${sanitized_path}")
   fi
@@ -29,7 +29,7 @@ LocalResolver__searchModulePath() {
   local -r path_list="$1"
   local -r module="$2"
 
-  local found_module=""
+  local found_module
   for path in ${path_list//:/ }; do
     [ -d "${path}" ] || continue
     found_module=$(LocalResolver__getModuleFile "${path}/${module}")
@@ -50,7 +50,8 @@ LocalResolver_resolve() {
     return 0
   fi
 
-  declare -A options="$(LocalResolver__parseOptions "${module_scheme}" "${module_name}" "$@")"
+  local -r options_arr="$(LocalResolver__parseOptions "${module_scheme}" "${module_name}" "$@")"
+  declare -A options="${options_arr}"
   local module_search_paths="${options[search]:-${PWD}}"
   LocalResolver__searchModulePath "${module_search_paths}" "${module_name}"
   return $?
@@ -60,7 +61,8 @@ LocalResolver_canResolve() {
   local module_scheme="$1"; shift
   local module_name="$1"; shift
 
-  declare -A options="$(LocalResolver__parseOptions "${module_scheme}" "${module_name}" "$@")"
+  local -r options_arr="$(LocalResolver__parseOptions "${module_scheme}" "${module_name}" "$@")"
+  declare -A options="${options_arr}"
   [ -z "${options[scheme]:-}" ] || \
     { [ -n "${options[scheme]:-}" ] && [ "${options[scheme]}" = "${module_scheme}" ]; }
 }

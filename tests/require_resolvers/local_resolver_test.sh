@@ -107,7 +107,7 @@ ValidModule_hello() {
   echo "hello world!"
 }
 VALID_MODULE_CONTENT
-  mkdir -p "$(dirname "${NESTED_VALID_MODULE_FILE}")"
+  mkdir -p "$(dirname -- "${NESTED_VALID_MODULE_FILE}")"
   cp "${VALID_MODULE_FILE}" "${NESTED_VALID_MODULE_FILE}"
 
   MODULE_NAME_IN_CWD="random_module_${RANDOM}"

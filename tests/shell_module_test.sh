@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 test_require_Returns_false_if_no_module_is_provided() {
   ShellModule_require
   local exit_status=$?
@@ -150,7 +149,7 @@ oneTimeSetUp() {
   touch "${INVALID_MODULE}"
 
   VALID_MODULE="${SHUNIT_TMPDIR}/valid_module.sh"
-  VALID_RELATIVE_MODULE="$(basename "${VALID_MODULE%*.sh}")"
+  VALID_RELATIVE_MODULE="$(basename -- "${VALID_MODULE%*.sh}")"
   cat<<END_OF_VALID_MODULE>"${VALID_MODULE}"
 #!/usr/bin/env bash
 
@@ -166,7 +165,7 @@ ValidModule_ONE_IF_LOADED=1
 export NUM_LOAD_COUNT=$(( ${NUM_LOAD_COUNT} + 1 ))
 
 END_OF_VALID_MODULE
-
+  # shellcheck disable=SC2154,SC1090
   . "${TestRunner_PROJECT_ROOT}/shell_module.sh"
 }
 
@@ -191,4 +190,5 @@ tearDown() {
 
 }
 
+# shellcheck disable=SC1090
 . "$(which shunit2)"

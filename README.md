@@ -100,12 +100,12 @@ _Exit codes based on:_ `/usr/include/sysexits.h`
 
 In order to install `require`, simply, paste the following line into your Bash shell:
 ```sh
-curl -L https://raw.githubusercontent.com/jtrefke/shell_require/master/install_online.sh | bash
+curl -L https://raw.githubusercontent.com/jtrefke/shell_require/master/install.sh | bash
 ```
 Alternatively, clone or download the repository and run `install.sh`.
 
 By default, `require` will be installed in `${HOME}/.shell_require` and the path
-to the executable will be added to your `~/.bashrc` or `~/.bash_profile` if writable.
+to the function will be added to your `~/.bashrc` or `~/.bash_profile` if writable.
 If you have any issues, make sure at least `~/.bash_profile` exists or that
 `~/.bash_profile` sources `~/.bashrc`.
 

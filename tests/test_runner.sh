@@ -5,8 +5,8 @@ set -u
 shopt -s globstar
 
 TestRunner_SCRIPT_NAME="$(readlink -e "${BASH_SOURCE[0]}")"
-TestRunner_SCRIPT_DIR="$(dirname "${TestRunner_SCRIPT_NAME}")"
-TestRunner_PROJECT_ROOT="$(cd "${TestRunner_SCRIPT_DIR}/.."; pwd)"
+TestRunner_SCRIPT_DIR="$(dirname -- "${TestRunner_SCRIPT_NAME}")"
+TestRunner_PROJECT_ROOT="$(cd -- "${TestRunner_SCRIPT_DIR}/.."; pwd)"
 TestRunner_CONFIG_FILE="${TestRunner_SCRIPT_NAME%*.sh}rc"
 
 export TestRunner_SCRIPT_NAME

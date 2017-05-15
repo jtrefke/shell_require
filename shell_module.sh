@@ -7,23 +7,50 @@
 # Implemented by Joern Trefke < joern [at] trefke [dot] com >
 # See: https://github.com/jtrefke/shell_require
 #
+
+ShellModule__getThisScriptFile() {
+  local current_file_path=$0
+  if [ -n "${BASH:-}" ]; then current_file_path=${BASH_SOURCE[0]}
+  else current_file_path=$0
+  fi
+  echo ${current_file_path}
+}
+
+ShellModule__realDir() {
+  local original_path="${1}"
+  local file path
+  [ ! -e "${original_path}" ] && return 1
+  (
+    unset CDPATH
+    cd -- "$(dirname -- "${original_path}")" >/dev/null 2>&1 || return $?
+    file="$(basename -- "${original_path}")"; original_path="${PWD}/${file}"
+    while [ -h "${file}" ] && [ "${original_path}" != "${path}" ]; do
+      path="$(readlink -- "${file}")"; file="$(basename -- "${path}")"
+      cd -- "$(dirname -- "${path}")" >/dev/null 2>&1  || return $?
+      path="${PWD}/${file}"
+    done
+    pwd -P
+  )
+}
+
 if [ -z "${ShellModule__INSTALL_DIR:-}" ]; then
-  readonly ShellModule__INSTALL_DIR="$(dirname "$(readlink -e "${BASH_SOURCE[0]}")")"
+  readonly ShellModule__INSTALL_DIR="$(ShellModule__realDir "$(ShellModule__getThisScriptFile)")"
+  export ShellModule__INSTALL_DIR
 fi
 
-if [ -r "${ShellModule__INSTALL_DIR}/shellmodulerc" ]; then
+if [ -f "${ShellModule__INSTALL_DIR}/shellmodulerc" ]; then
   # shellcheck source=/dev/null
   source "${ShellModule__INSTALL_DIR}/shellmodulerc"
 fi
 
-if [ -r "${HOME}/.shellmodulerc" ]; then
+if [ -f "${HOME}/.shellmodulerc" ]; then
     # shellcheck source=/dev/null
     source "${HOME}/.shellmodulerc"
 fi
+[ "${ShellModule___IS_LOADED:-false}" != "false" ] && { [ "${BASH_SOURCE[0]}" = "$0" ] && exit 0 || return 0; }
 
-[ "${ShellModule___IS_LOADED:-false}" != "false" ] && { [ "${BASH_SOURCE[0]}" = "$0" ] && return 0 || exit 0; }
-readonly ShellModule___IS_LOADED=true
-
+ShellModule___IS_LOADED=true
+export ShellModule___IS_LOADED
 declare -Arg ShellModule_EX=(
   [OK]=0            # successful termination
   [USAGE]=64        # command line usage error: no input provided
@@ -48,6 +75,10 @@ readonly ShellModule__DEFAULT_RESOLVERS=(
 )
 ShellModule__USED_RESOLVERS=()
 
+
+require() {
+  ShellModule_require "$@"
+}
 
 ShellModule_isFunctionPresent() {
   declare -F $1>/dev/null 2>&1
@@ -86,9 +117,10 @@ ShellModule_require() {
     return $?
   fi
 
+  local -r this_module="$(ShellModule__extractModuleInfo "$(ShellModule__fileSystemToModuleNotation "${module_name}")" "module")"
   # shellcheck source=/dev/null
   source "${resolved_module_path}" && \
-    declare -g "$(ShellModule__extractModuleInfo "$(ShellModule__fileSystemToModuleNotation "${module_name}")" "module")___IS_LOADED=true"
+    declare -g "${this_module}___IS_LOADED=true"
 }
 
 ShellModule__resolveModuleFile() {
@@ -99,7 +131,7 @@ ShellModule__resolveModuleFile() {
   local resolver_exit_code=$?
 
   if [ "${provided_module_name:0:2}" = "./" ]; then
-    provided_module_name="$(dirname "$(ShellModule__getInvokedScriptFile)")/${provided_module_name:2}"
+    provided_module_name="$(dirname -- "$(ShellModule__getInvokedScriptFile)")/${provided_module_name:2}"
   fi
 
   # Builtin: Resolve absolute paths
@@ -186,7 +218,7 @@ ShellModule__resolveUsingExternalResolvers() {
     fi
 
     (${resolver[canResolve]} "${module_scheme}" "${module_path}" "${arguments[@]}")>/dev/null 2>&1  || continue
-    resolved_path="$(mktemp --suffix="$(basename "${resolver_path}").sh")" || return 1
+    resolved_path="$(mktemp)" || return 1
     (${resolver[resolve]} "${module_scheme}" "${module_path}" "${resolved_path}" "${arguments[@]}")>/dev/null 2>&1 || continue
     if ! ShellModule__isShellModule "${resolved_path}" ; then
       [ -e "${resolved_path}" ] && rm "${resolved_path}"
@@ -218,12 +250,12 @@ ShellModule__storeExternalModule() {
   local -r script_modules_dir="$2"
   local -r sanitized_module=$(ShellModule__sanitizedModulePath "$3")
 
-  local -r script_modules_parent_dir=$(dirname "${script_modules_dir}")
+  local -r script_modules_parent_dir=$(dirname -- "${script_modules_dir}")
   local -r target_file_path="${script_modules_dir}/${sanitized_module}"
   local stored_file_path=""
   if [ -d "${script_modules_parent_dir}" ] && [ ! -f "${target_file_path}" ]; then
-    mkdir -p "$(dirname "${target_file_path}")" && \
-    mv "${current_file_path}" "${target_file_path}" && \
+    mkdir -p -- "$(dirname -- "${target_file_path}")" && \
+    mv -- "${current_file_path}" "${target_file_path}" && \
     stored_file_path="${target_file_path}"
   fi
   if [ -z "${stored_file_path}" ]; then
@@ -233,14 +265,14 @@ ShellModule__storeExternalModule() {
 }
 
 ShellModule__isSourced() {
-  [ "$(basename "${BASH_SOURCE[0]}")" != "$(basename "$0")" ]
+  [ "$(basename -- "${BASH_SOURCE[0]}")" != "$(basename -- "$0")" ]
 }
 
 ShellModule__log() {
   local -r exit_code=${1:-1}; shift
   local -r message="$*"
 
-  local -r script_name="$(basename "$0")"
+  local -r script_name="$(basename -- "$0")"
   local -r output_stream=$([ ${exit_code} -eq 0 ] && echo 1 || echo 2)
 
   ! ShellModule__isSourced && echo "${script_name}: ${message}">&${output_stream}
@@ -250,28 +282,13 @@ ShellModule__log() {
 ShellModule__getModulesDirectory() {
   local root_dir="$1"
 
-  [ -f "${root_dir}" ] && root_dir="$(dirname "${root_dir}")"
+  [ -f "${root_dir}" ] && root_dir="$(dirname -- "${root_dir}")"
   [ ! -d "${root_dir}" ] && return 1
 
-  local -r absolute_root_dir="$(cd "${root_dir}" && echo "${PWD}")"
+  local -r absolute_root_dir="$(unset CDPATH; cd -- "${root_dir}" && echo "${PWD}")"
   [ $? -ne 0 ] || [ -z "${absolute_root_dir}" ] && return 1
 
   echo "${absolute_root_dir}/${ShellModule__MODULES_DIRECTORY_NAME}"
-}
-
-
-ShellModule__resolveLinks() {
-  local -r file_or_link="$1"
-  readlink -e "${file_or_link}"
-}
-
-
-ShellModule__getThisScriptFile() {
-  local current_file_path=$0
-  if [ "${BASH:-notset}" != "notset" ]; then current_file_path=${BASH_SOURCE[0]}
-  else current_file_path=$0
-  fi
-  echo ${current_file_path}
 }
 
 
@@ -293,7 +310,6 @@ ShellModule__getInvokedScriptFile() {
 ShellModule__isNoReloadingRequired() {
   local -r reload="$1"
   local -r module_name="$2"
-
   [ "${reload}" != "reload" ] && \
     ShellModule_isModulePresent \
       "$(ShellModule__fileSystemToModuleNotation "${module_name}")"
@@ -333,7 +349,7 @@ ShellModule__extractModuleInfo() {
 ShellModule__isShellModule() {
   local file_path="$1"
   [ -s "${file_path}" ] && \
-  grep -m 1 '.'  "${file_path}" 2>/dev/null | \
+  sed -n '/./{p;q;}' "${file_path}" 2>/dev/null | \
   grep -s -q -E '^\s*#\s*!\s*/((usr/)?bin/)(env\s+.*sh|.*sh)\s*$'
   return $?
 }
@@ -341,7 +357,7 @@ ShellModule__isShellModule() {
 ShellModule__moduleSearchPaths() {
   local -r local_modules_dir=$(ShellModule__getModulesDirectory "${PWD}")
   local -r script_modules_dir=$(ShellModule__getModulesDirectory "$(ShellModule__getInvokedScriptFile)")
-  local -r script_dir=$(dirname "${script_modules_dir}")
+  local -r script_dir=$(dirname -- "${script_modules_dir}")
   local -r user_modules_dir=$(ShellModule__getModulesDirectory "${HOME}")
   local module_search_paths="${PWD}:${local_modules_dir}:${script_dir}:${script_modules_dir}"
   module_search_paths+=":${HOME}:${user_modules_dir}:${ShellModule__GLOBAL_MODULES_DIRECTORY}:${ShellModule_PATH:-}"
@@ -349,4 +365,4 @@ ShellModule__moduleSearchPaths() {
   echo "${module_search_paths}"
 }
 
-readonly ShellModule__GLOBAL_MODULES_DIRECTORY="$(ShellModule__getModulesDirectory "$(ShellModule__resolveLinks "$(ShellModule__getThisScriptFile)")")"
+readonly ShellModule__GLOBAL_MODULES_DIRECTORY="$(ShellModule__getModulesDirectory "$(ShellModule__realDir "$(ShellModule__getThisScriptFile)")")"
