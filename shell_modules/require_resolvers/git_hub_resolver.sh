@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
-declare -r -A -g GitHubResolver_ENDPOINTS=(
-  [API]="https://api.github.com"
-  [PUBLIC]="https://raw.githubusercontent.com"
-)
+readonly GitHubResolver_ENDPOINT_API="https://api.github.com"
+readonly GitHubResolver_ENDPOINT_PUBLIC="https://raw.githubusercontent.com"
 
 GitHubResolver_resolve() {
   local -r scheme="$1"; shift
@@ -13,8 +11,8 @@ GitHubResolver_resolve() {
   output[file]="$1"; shift
   output[headers]="$(GitHubResolver__headerFilePath "${output[file]}")"
 
-  local -r options_arr="$(GitHubResolver__parseOptions "${scheme}" "${module}" "$@")"
-  declare -A options="${options_arr}"
+  local -r options_arr=$(GitHubResolver__parseOptions "${scheme}" "${module}" "$@")
+  eval "declare -A options=${options_arr}"
   if [ ${#options[@]} -eq 0 ]; then
     return 1
   fi
@@ -44,7 +42,7 @@ GitHubResolver_canResolve() {
   command -v curl >/dev/null 2>&1 || return 1
 
   local -r options_arr="$(GitHubResolver__parseOptions "${scheme}" "${module}" "$@")"
-  declare -A options="${options_arr}"
+  eval "declare -A options=${options_arr}"
   if [ ${#options[@]} -eq 0 ]; then
     return 1
   elif [ -n "${options[scheme]:-}" ] && [ "${options[scheme]}" != "${scheme}" ]; then
@@ -140,7 +138,7 @@ GitHubResolver__parseOptions() {
 GitHubResolver__getGitHubContentPublic() {
   local -r output_file="$5"
   local -r header_output_file="$6"
-  local -r github_url="${GitHubResolver_ENDPOINTS[PUBLIC]}/$1/$2/$4/$3"
+  local -r github_url="${GitHubResolver_ENDPOINT_PUBLIC}/$1/$2/$4/$3"
   curl -D "${header_output_file}" \
        -o "${output_file}" \
        -L "${github_url}" \
@@ -151,7 +149,7 @@ GitHubResolver__getGitHubContentApi() {
   local -r output_file="$5"
   local -r header_output_file="$6"
   local -r oauth_token="$7"
-  local -r github_url="${GitHubResolver_ENDPOINTS[API]}/repos/$1/$2/contents/$3?ref=$4"
+  local -r github_url="${GitHubResolver_ENDPOINT_API}/repos/$1/$2/contents/$3?ref=$4"
   # GET /repos/:owner/:repo/contents/:path
   # See https://developer.github.com/v3/repos/contents/#get-contents
   curl -H "Authorization: token ${oauth_token}" \

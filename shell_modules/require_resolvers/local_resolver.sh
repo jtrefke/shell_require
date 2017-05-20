@@ -51,7 +51,7 @@ LocalResolver_resolve() {
   fi
 
   local -r options_arr="$(LocalResolver__parseOptions "${module_scheme}" "${module_name}" "$@")"
-  declare -A options="${options_arr}"
+  eval "declare -A options=${options_arr}"
   local module_search_paths="${options[search]:-${PWD}}"
   LocalResolver__searchModulePath "${module_search_paths}" "${module_name}"
   return $?
@@ -62,7 +62,7 @@ LocalResolver_canResolve() {
   local module_name="$1"; shift
 
   local -r options_arr="$(LocalResolver__parseOptions "${module_scheme}" "${module_name}" "$@")"
-  declare -A options="${options_arr}"
+  eval "declare -A options=${options_arr}"
   [ -z "${options[scheme]:-}" ] || \
     { [ -n "${options[scheme]:-}" ] && [ "${options[scheme]}" = "${module_scheme}" ]; }
 }

@@ -216,13 +216,12 @@ ShellModule__resolveUsingExternalResolvers() {
         return 3
       fi
     fi
-
-    (${resolver[canResolve]} "${module_scheme}" "${module_path}" "${arguments[@]}")>/dev/null 2>&1  || continue
+    (${resolver[canResolve]} "${module_scheme}" "${module_path}" "${arguments[@]}")>/dev/null 2>&1 || continue
     resolved_path="$(mktemp)" || return 1
     (${resolver[resolve]} "${module_scheme}" "${module_path}" "${resolved_path}" "${arguments[@]}")>/dev/null 2>&1 || continue
     if ! ShellModule__isShellModule "${resolved_path}" ; then
       [ -e "${resolved_path}" ] && rm "${resolved_path}"
-      (${resolver[rejected]} "${resolved_path}") >/dev/null 2>&1
+      (${resolver[rejected]} "${resolved_path}")>/dev/null 2>&1
       continue
     fi
     module_path_result="${resolved_path}"
@@ -315,20 +314,39 @@ ShellModule__isNoReloadingRequired() {
       "$(ShellModule__fileSystemToModuleNotation "${module_name}")"
 }
 
+# Workaround for normalized module name, as
+# BSD sed does not have the GNU sed uppercase/lowercase extensions
+ShellModule__capitalizeAfter() {
+  local input="$1"; shift
+
+  local current_char
+  local previous_char=/
+  local len=${#input}
+  for ((i=0; i<${len}; i=$i+1)); do
+    current_char=${input:${i}:1}
+    if [ "${previous_char}" = "/" ] || [ "${previous_char}" = "_" ]; then
+      current_char=$(echo "${current_char}" | sed "y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/")
+      input="${input:0:${i}}${current_char}${input:$((${i}+1))}"
+    fi
+    previous_char=${current_char}
+  done
+  echo "${input}"
+}
+
 ShellModule__fileSystemToModuleNotation() {
   local file_system_path="$1"
-
-  local -r module_notation_name=$(
+  local module_notation_name
+  module_notation_name=$(
     echo ${file_system_path} | \
-    sed -E 's/.*\/shell_modules\///;s/(.+)\.sh$/\1/i;s/[^a-zA-Z0-9_\/]/_/g;s/(_|\/){2,}/_/g;s/[_]([a-z])/\u\1/g;s/^[a-z]/\u&/;s/\/([a-z])/\/\u\1/g'
+    sed -E 's/.*\/shell_modules\///;s/(.+)\.sh$/\1/i;s/[^a-zA-Z0-9_\/]/_/g;s/(_|\/){2,}/_/g'
   ) || return 1
-
-  echo "${module_notation_name}"
+  module_notation_name=$(ShellModule__capitalizeAfter "${module_notation_name}")
+  echo "${module_notation_name//_/}"
 }
 
 ShellModule__sanitizedModulePath() {
   local -r module_path="$1"
-  echo "${module_path}" | sed -E 's/[^a-zA-Z0-9\/_\.]/_/gi;s/(_|\/){2,}/\1/g;'
+  echo "${module_path}" | sed -E 's/[^a-zA-Z0-9\/_\.\-]/_/gi;s/(_|\/){2,}/\1/g;'
 }
 
 ShellModule__extractModuleInfo() {

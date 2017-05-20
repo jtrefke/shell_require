@@ -51,6 +51,7 @@ Install_main() {
   Install_addToPath "${install_dir}" || \
     Install_exit 1 "Error adding files to PATH"
 
+  echo
   echo "Installation complete!"
   echo
   echo "As always: "
@@ -99,8 +100,8 @@ Install_copyInstallFiles() {
   [ ! -w "$(dirname -- "${install_dir}")" ] && return 1
 
   mkdir -p "${install_dir}" || return 1
-  cp -R ${source_dir}/* "${install_dir}" || return 1
-  chmod ${bin_files_permission} ${install_dir}/bin/*
+  cp -R "${source_dir}/"* "${install_dir}" || return 1
+  chmod ${bin_files_permission} "${install_dir}/bin/"*
 }
 
 Install_download() {
@@ -157,7 +158,7 @@ Install_addToPath() {
   local -r file_path="$1"
   local -r bin_file_path="${file_path}/bin"
   local -r require_src="${file_path}/shell_module.sh"
-  local -r env_files=("${HOME}/.bashrc" "${HOME}/.bash_profile")
+  local -r env_files=("${HOME}/.bashrc" "${HOME}/.bash_profile" "${HOME}/.shrc")
 
   local path_includes_require=false
   for env_file in "${env_files[@]}"; do
@@ -168,6 +169,8 @@ Install_addToPath() {
 
     if [ -w "${env_file}" ]; then
 cat<<-END_OF_INCLUDE>>"${env_file}"
+# Alternative install for ${Install_APP_NAME}
+# export PATH="${bin_file_path}:\$PATH"
 # Installing ${Install_APP_NAME} as function
 source "${require_src}" 2>/dev/null || \\
   {
@@ -180,8 +183,6 @@ source "${require_src}" 2>/dev/null || \\
     echo "  https://github.com/jtrefke/shell_require/issues"
     echo ;
   }
-# Alternative install for ${Install_APP_NAME}
-# export PATH=\"${bin_file_path}:\$PATH\"
 END_OF_INCLUDE
       [ $? -eq 0 ] && path_includes_require=true && break
     fi

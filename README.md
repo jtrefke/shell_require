@@ -7,16 +7,18 @@ Out of the box, it supports public and private _GitHub_ repositories, as well as
 pretty much any _http(s)_ or _ftp_ host. In addition to that, any other scheme
 can be supported through an extensible interface.
 
-# Table of Contents
+**Status:** `Work in Progress`
+
+## Table of Contents
 
 <!-- TOC depthFrom:1 depthTo:3 withLinks:1 updateOnSave:0 orderedList:0 -->
+- [Installation](#installation)
 - [Usage examples](#usage-examples)
-	- [For files on the local filesystem](#for-files-on-the-local-filesystem)
+	- [For files on the local file-system](#for-files-on-the-local-file-system)
 	- [For files on GitHub](#for-files-on-github)
 	- [For any http(s) or ftp URL](#for-any-https-or-ftp-url)
 	- [Options](#options)
 	- [Exit codes](#exit-codes)
-- [Installation](#installation)
 - [Configuration](#configuration)
 	- [Configuring script search paths](#configuring-script-search-paths)
 	- [Configuring non-local modules/files handling](#configuring-non-local-modulesfiles-handling)
@@ -26,17 +28,34 @@ can be supported through an extensible interface.
 - [Developing modules for `require` _for Bash_](#developing-modules-for-require-for-bash)
 	- [What is a module?](#what-is-a-module)
 	- [Naming conventions for modules](#naming-conventions-for-modules)
-	- [Other considerations when develping modules](#other-considerations-when-develping-modules)
+	- [Other considerations when developing modules](#other-considerations-when-developing-modules)
 	- [Why should I develop a module?](#why-should-i-develop-a-module)
 - [Creating your own resolver](#creating-your-own-resolver)
 - [Future plans/TODOs](#future-planstodos)
 <!-- /TOC -->
 
+# Installation
+
+To install `require`, simply, paste the following line into your shell:
+```sh
+curl -L https://raw.githubusercontent.com/jtrefke/shell_require/master/install.sh | bash
+```
+Alternatively, clone or download the repository and run `install.sh`.
+
+By default, `require` will be installed in `${HOME}/.shell_require` and the path
+to the function will be added to your `~/.bashrc` or `~/.bash_profile` if writable.
+If you have any issues, make sure at least `~/.bash_profile` exists or that
+`~/.bash_profile` sources `~/.bashrc`.
+
+Besides `curl`, which is only used for some external resolvers, it should not
+require more software than the GNU core utilities.
+
+
 # Usage examples
 
 Here are some examples of how the use looks like:
 
-### For files on the local filesystem
+### For files on the local file-system
 
 ```sh
 require '/absolute/path/to/my/script'
@@ -96,29 +115,13 @@ However, to simplify debugging, the following different codes are used:
 
 _Exit codes based on:_ `/usr/include/sysexits.h`
 
-# Installation
-
-In order to install `require`, simply, paste the following line into your Bash shell:
-```sh
-curl -L https://raw.githubusercontent.com/jtrefke/shell_require/master/install.sh | bash
-```
-Alternatively, clone or download the repository and run `install.sh`.
-
-By default, `require` will be installed in `${HOME}/.shell_require` and the path
-to the function will be added to your `~/.bashrc` or `~/.bash_profile` if writable.
-If you have any issues, make sure at least `~/.bash_profile` exists or that
-`~/.bash_profile` sources `~/.bashrc`.
-
-Besides `curl`, which is only used for some external resolvers, it should not
-require more software than the GNU core utilities.
-
 # Configuration
 
-There is _no configuration required_ for local filesystem scenarios and the default external
+There is _no configuration required_ for local file-system scenarios and the default external
 schemes for (GitHub (`gh:`) as well as `http:`, `https:` and `ftp:`).
 For all resolvers, `require` _for Bash_ will always search for the specified module
-name ending with `.sh`. On the local filesystem, it will also search for the
-specified module name withouth the `.sh` ending, if the first one does not exist.
+name ending with `.sh`. On the local file-system, it will also search for the
+specified module name without the `.sh` ending, if the first one does not exist.
 
 
 Additional configuration can take place through the `shellmodulerc` file or more
@@ -132,7 +135,7 @@ The next sections provide some more details about the configuration options.
 
 ## Configuring script search paths
 
-By default, `require`_ for Bash_ will only resolve files stored on the local filesystem.
+By default, `require`_ for Bash_ will only resolve files stored on the local file-system.
 To resolve non-absolute file names, `require` will search several directories.
 
 By default, it will search in the following order:
@@ -142,7 +145,7 @@ By default, it will search in the following order:
 1. `require`_ for Bash_ installation directory
 
 In all of these directories it will additionally look in any `shell_modules` directory, if it exists.
-In addition to any of the aformentioned search paths, it searches in any path, that is configured using the `ShellModule_PATH` environment variable.
+In addition to any of the aforementioned search paths, it searches in any path, that is configured using the `ShellModule_PATH` environment variable.
 For example:
 ```sh
 # Adding ${HOME}/bin, /opt/my_place and /etc to search path
@@ -179,7 +182,7 @@ script, the stored copy is used.
 
 ## Advanced resolver configuration
 
-In addition to the aformentioned default resolvers' schemes, the same or other resolvers
+In addition to the aforementioned default resolvers' schemes, the same or other resolvers
 can be configured using the `ShellModule_RESOLVERS` variable to accept specific
 schemes, prefixes or resolve only specific paths.
 
@@ -402,7 +405,7 @@ name or variable name.
 
 The following naming scheme tries to address these issues. It introduces different naming
 conventions to achieve a distinction between `modules`, `functions`, `variables` and `constants`.
-In addtion to that the naming scheme introduces a differentiation for module-global/public
+In addition to that the naming scheme introduces a differentiation for module-global/public
 functions and constants that may be used by other developers/modules and
 things that are only to be used internally (similar to public/private in
 other programming languages).
@@ -422,10 +425,10 @@ caps and `SNAKE_CASED`; examples: `MyModule_CONF_VALUE`, `Console_COLORS`
   - Non-public variables: `MyModule__RUN_CMD`, `Console__DEFAULT_FD`
   - Non-public functions: `MyModule__updateValue`, `Console__printColoredMsg`
 
-## Other considerations when develping modules
+## Other considerations when developing modules
 
 - When requiring other modules, try to stick to the default scheme (see above)
-- Ensure, that functions always return an exit status that reflects the success of their execution. For instance, if something went wrong in a function, but the last line is an `echo` statement, the program flow should rather be terminated right after the error occured before the `echo` or at least a `return $erroring_exit_code_here` or should be at the end
+- Ensure, that functions always return an exit status that reflects the success of their execution. For instance, if something went wrong in a function, but the last line is an `echo` statement, the program flow should rather be terminated right after the error occurred before the `echo` or at least a `return $erroring_exit_code_here` or should be at the end
 - Make use of exit status results; simple ways to handle them are `&&` and `||`
 - Write error outputs to standard error (`>&2`) and anything else to standard out `>`
 - Properly check inputs and outputs in functions
@@ -446,7 +449,7 @@ debug.
 Using and sharing code through `require` also enables you to centrally maintain
 and update certain portions of scripts in today's system landscape where online/
 interconnected systems are standard.
-In addtion to that, sharing your modules and contributing to other modules
+In addition to that, sharing your modules and contributing to other modules
 creates helps creating better scripts.
 
 
@@ -479,7 +482,7 @@ The `resolve` function is supposed find the requested module based on the given 
 
 `MODULE_SCHEME: string` - Scheme used to resolve the module (for example: "gh:", "http:")
 `MODULE_NAME: string` - Name of the module to be resolved (for example: "some_owner/scripts_repo/master/scripts")
-`OUTPUT_FILE: string` - Path on the local filesystem where any resolved output file has to be written to
+`OUTPUT_FILE: string` - Path on the local file-system where any resolved output file has to be written to
 `OPTIONS: array<string>` - Variable list of optional arguments that were used to configure the resolver (see above)
 
 `return` - `0`/`true` if the module could be resolved; `1`/`false` otherwise.
@@ -489,7 +492,7 @@ The `resolve` function is supposed find the requested module based on the given 
 If the content was resolved, but was not recognized as a valid bash script by `require` _for Bash_, the output file will be deleted and the `onRejected` function will be called.
 Feel free to do any clean up work, if necessary, or simply return `true`
 
-`OUTPUT_FILE: string` - Path on the local filesystem where any resolved output file had been written to
+`OUTPUT_FILE: string` - Path on the local file-system where any resolved output file had been written to
 
 `return` - `0`/`true` or anything else; the result of this action will be ignored.
 
@@ -500,7 +503,7 @@ Feel free to do any clean up work, if necessary, or simply return `true`
 
 `MODULE_SCHEME: string` - Scheme used to resolve the module (for example: `gh:`, `http:`)
 `MODULE_NAME: string` - Name of the module to be resolved (for example: `some_owner/scripts_repo/master/scripts`)
-`OUTPUT_FILE: string` - Path on the local filesystem where any resolved output file had been written to
+`OUTPUT_FILE: string` - Path on the local file-system where any resolved output file had been written to
 
 `return` - `0`/`true` or anything else; the result of this action will be ignored.
 
@@ -512,6 +515,7 @@ To add your own resolvers, simply add them to any location in your search path (
 - Look into other test frameworks (shpec or urchin)
 - Increase test coverage/improve test base
 - Extract common test functionality
+- Add `system` resolver to resolve/fail on system dependencies (like packages/commands) required by a script
 - Clean up codebase
 - Ensure POSIX shell compliance
 - Add AWS S3 resolver
