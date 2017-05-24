@@ -115,12 +115,14 @@ Install_download() {
   mkdir -p "${download_dir}" || return 1
   (
     unset CDPATH; cd "${download_dir}" || exit 1
+    for file in "${Install_SOURCE_FILES[@]}"; do
+      mkdir -p "$(dirname "${file}")"
+    done
     # Downloading all files manually, therefore neither
     # tar, gzip, or unzip is required
     curl -L "${base_url}/{${source_file_string}}" \
        -o "#1" \
        -f \
-       --create-dirs \
        --compressed -#
  )
 }
